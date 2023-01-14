@@ -26,9 +26,22 @@ def main(input_folder, output_folder, edges_path):
         # Load the image using OpenCV
         img = cv2.imread(os.path.join(input_folder, filename))
 
+        # Add a padding around the image and inpaint the edges
+        padding = 40
+        img = cv2.copyMakeBorder(img, padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=(0, 0, 0, 0))
+        mask = np.zeros(img.shape[:2], np.uint8)
+        mask[:padding, :] = 255
+        mask[-padding:, :] = 255
+        mask[:, :padding] = 255
+        mask[:, -padding:] = 255
+        img = cv2.inpaint(img, mask, 3, cv2.INPAINT_TELEA)
+        
+        # Display the inpainted image
+        cv2.imshow("Inpainted", img)
+        cv2.waitKey(0)
+
         # Add an alpha channel to the image
         img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
-
 
         # Convert the image to grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -39,10 +52,6 @@ def main(input_folder, output_folder, edges_path):
         # Apply a Gaussian blur to reduce noise
         gray = cv2.GaussianBlur(gray, (15, 15), 0)
 
-        # Add a padding of 40 pixels around the image
-        gray = cv2.copyMakeBorder(gray, 40, 40, 40, 40, cv2.BORDER_CONSTANT, value=(0, 0, 0, 0))
-        img = cv2.copyMakeBorder(img, 40, 40, 40, 40, cv2.BORDER_CONSTANT, value=(0, 0, 0, 0))
-
         # Detect circles using the Hough Transform
         circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20, param1=50, param2=30, minRadius=0, maxRadius=0)
 
@@ -51,56 +60,66 @@ def main(input_folder, output_folder, edges_path):
             logging.warning(f"No circles found in {filename}")
             continue
 
-        # Out of all overlapping circles, only keep the biggest one that fully fits inside the image
-        x, y, r = np.round(circles[0, :]).astype("int")[0]
-        for (x2, y2, r2) in np.round(circles[0, :]).astype("int"):
-            if r2 > r and x2-r2 >= 0 and y2-r2 >= 0 and x2+r2 < gray.shape[1] and y2+r2 < gray.shape[0]:
-                x, y, r = x2, y2, r2
+        # Out of all overlapping circles, only keep the biggest ones that don't overlap and are fully inside the image
+        coins = []
+        for c in circles[0]:
+            # Check if the circle overlaps with any of the circles we've already chosen
+            if not any((c[0]-c[2] < c2[0]+c2[2] and c[0]+c[2] > c2[0]-c2[2] and c[1]-c[2] < c2[1]+c2[2] and c[1]+c[2] > c2[1]-c2[2]) for c2 in coins):
+                # If it doesn't overlap, add it to the list
+                coins.append(c)
 
         # Draw the detected circles on the image
         gray2 = gray.copy()
-        if circles is not None:
-            for (xi, yi, ri) in np.round(circles[0, :]).astype("int"):
-                cv2.circle(gray2, (xi, yi), ri, (0, 255, 0), 4)
-                cv2.circle(gray2, (x, y), r, (255, 255, 255), 3)
-                cv2.rectangle(gray2, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+        if coins is not None:
+            for c in coins:
+                x, y, r = c.astype(int)
+                cv2.circle(gray2, (x, y), r, (255, 255, 255), 2, cv2.LINE_AA)
 
             # Display the image
             cv2.imshow("detected circles", gray2)
             cv2.waitKey(0)
 
-        # Create a mask with the circle area
-        mask = np.zeros(img.shape[:2], np.uint8)
-        cv2.circle(mask, (x, y), r, 255, -1, 8, 0)
+        # Create the output folder if it doesn't exist
+        pathlib.Path(output_folder).mkdir(parents=True, exist_ok=True)
 
-        # Set the pixels outside the circle to transparent on a copy of the original image
-        img2 = img.copy()
-        img2[mask == 0] = (0, 0, 0, 0)
+        # Iterate through the circles
+        for c, i in zip(coins, range(len(coins))):
 
-        # Crop the image to the circle
-        crop = img2[y-r:y+r, x-r:x+r]
+            # Get the center and radius of the circle
+            x, y, r = c.astype(int)
 
-        # Get the filename without the extension
-        name = os.path.splitext(filename)[0]
+            # Create a mask with the circle area
+            mask = np.zeros(img.shape[:2], np.uint8)
+            cv2.circle(mask, (x, y), r, 255, -1, 8, 0)
 
-        # Create a new image with the correct size for the texture
-        texture = np.zeros((r*4, r*4, 4), np.uint8)
+            # Set the pixels outside the circle to transparent on a copy of the original image
+            img2 = img.copy()
+            img2[mask == 0] = (0, 0, 0, 0)
 
-        # Copy the cropped image to the lower left corner of the texture
-        texture[r*2:, :r*2] = crop
+            # Crop the image to the circle
+            crop = img2[y-r:y+r, x-r:x+r]
 
-        # Calculate the average color of the cropped image
-        avg_color = np.mean(crop, axis=(0, 1))
+            # Get the filename without the extension
+            name = os.path.splitext(filename)[0]
 
-        # Fill a circle with the average color in the lower right corner of the texture
-        cv2.circle(texture, (r*3, r*3), r, avg_color, -1, 8, 0)
+            # Create a new image with the correct size for the texture
+            texture = np.zeros((r*4, r*4, 4), np.uint8)
 
-        # If the edge texture was loaded, resize it and copy it to the upper half of the texture
-        if edge is not None:
-            texture[:r*2, :r*4] = cv2.resize(edge, (r*4, r*2))
+            # Copy the cropped image to the lower left corner of the texture
+            texture[r*2:, :r*2] = crop
 
-        # Save the texture
-        cv2.imwrite(os.path.join(output_folder, f"{name}.texture.png"), texture)
+            # Calculate the average color of the cropped image
+            avg_color = np.mean(crop, axis=(0, 1))
+
+            # Fill a circle with the average color in the lower right corner of the texture
+            cv2.circle(texture, (r*3, r*3), r, avg_color, -1, 8, 0)
+
+            # If the edge texture was loaded, resize it and copy it to the upper half of the texture
+            if edge is not None:
+                texture[:r*2, :r*4] = cv2.resize(edge, (r*4, r*2))
+
+            # Save the texture
+            cv2.imwrite(os.path.join(output_folder, f"{name}-{i}.texture.png"), texture)
                 
 
 if __name__ == "__main__":
