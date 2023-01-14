@@ -1,4 +1,4 @@
-# This script should only be run from the Blender Python console
+# This script should be run from the Blender Python console
 
 import bpy
 import os
@@ -6,8 +6,8 @@ import random
 import subprocess
 
 # Constants
-INPUT_DIR = "C:/Users/bsodium/Code/Local/blender_coins/out/cropped"
-OUTPUT_DIR = "C:/Users/bsodium/Code/Local/blender_coins/out/rendered"
+INPUT_DIR = "C:/Users/bsodium/Code/GitHub/blender-coin-generation/out/cropped"
+OUTPUT_DIR = "C:/Users/bsodium/Code/GitHub/blender-coin-generation/out/rendered"
 VARIATIONS = 3
 
 # Run the "isolate.py" script via subprocess if the input directory doesn't exist or is empty
@@ -20,11 +20,11 @@ cylinder = bpy.data.objects["Coin"]
 # Get the material of the cylinder
 mat = cylinder.data.materials[0]
 
-# Get the texture node (the node with the name "Image texture") and the bump texture node (the node with the name "Bump image texture")
+# Get the texture nodes
 for node in mat.node_tree.nodes:
-    if node.name == "Image texture":
+    if node.name == "img_texture":
         tex_node = node
-    elif node.name == "Bump image texture":
+    elif node.name == "bump_texture":
         bump_node = node
 
 # Iterate through the textures in the input directory
