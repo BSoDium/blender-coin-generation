@@ -46,7 +46,7 @@ def find_circle(img):
 
                     circle = (_x_cen, _y_cen, _rad)
 
-                    losses[i] = compute_circle_loss(img, circle, old_losses)
+                    losses[i] = compute_circle_loss(img, circle)
 
                     i += 1
 

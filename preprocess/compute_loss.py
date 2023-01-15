@@ -3,16 +3,16 @@ import numpy as np
 from utils import debug
 
 
-def compute_circle_loss(img, circle, old_losses):
+def compute_circle_loss(img, circle):
 
     x_center = circle[0]
     y_center = circle[1]
     radius = circle[2]
 
-    return compute_loss_ellipse(img, (x_center, y_center, radius, radius, 0), old_losses)
+    return compute_loss_ellipse(img, (x_center, y_center, radius, radius, 0))
 
 
-def compute_loss_ellipse(img, ellipse, old_losses):
+def compute_loss_ellipse(img, ellipse):
 
     center = (ellipse[0], ellipse[1])
     axis = (ellipse[2], ellipse[3])
@@ -28,31 +28,24 @@ def compute_loss_ellipse(img, ellipse, old_losses):
     # revert the mask
     mask = cv2.bitwise_not(mask)
 
-    # compute the mean of the pixels that are in the mask
-    mean = np.mean(img[mask == 255])
-
     # remove this mean to each pixel color (outside the circle)
     img2 = img.copy()
-    img2[mask == 255] = img2[mask == 255] - mean
 
-    # compute mean of the pixels that are inside the circle
-    inside_mean = np.mean(img2[mask == 0])
+    # coount number of white pixels of img2 inside the circle (mask == 0)
+    nb_in_white = np.count_nonzero(img2[mask == 0] == 255)
 
-    # compute the mean of pixels that are outside the circle
-    outside_mean = np.mean(img2[mask == 255])
+    # count number of black pixels outside the mask (mask == 255)
+    nb_out_black = np.count_nonzero(img2[mask == 255] == 0)
 
-    nb_of_out_pixels = np.count_nonzero(img2[mask == 255])
+    nb_total_pixels = height * width
 
-    # compute the loss
-    # loss = (inside_mean / 255 - outside_mean / 255) / 2
-    # loss = outside_mean / 255
-    alpha = 0.6
+    alpha = 0.5
     beta = 1-alpha
 
-    loss = ((
-        alpha * (outside_mean / 255) -
-        beta * (nb_of_out_pixels / (height * width))
-    )) / 2
+    loss = abs(((
+        alpha * (nb_in_white / nb_total_pixels) -
+        beta * (nb_out_black / nb_total_pixels)
+    )) / 2)
 
     return (loss)
 

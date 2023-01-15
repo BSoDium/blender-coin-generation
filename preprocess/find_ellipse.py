@@ -43,8 +43,7 @@ def find_ellipse(img, init_circle):
                     current_ellipse = (center_x, center_y,
                                        _major_axis, _minor_axis, _angle)
 
-                    losses[i] = compute_loss_ellipse(
-                        img, current_ellipse, old_losses)
+                    losses[i] = compute_loss_ellipse(img, current_ellipse)
 
                     # show_ellipse(img, current_ellipse)
 
