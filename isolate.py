@@ -4,9 +4,48 @@ import numpy as np
 import pathlib
 import logging
 import json
-import re
+from texture import Texture
 
 DIR = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
+
+
+def export(image, circle, filepath, edge=None):
+    # Get the center and radius of the circle
+    x, y, r = circle.astype(int)
+
+    # Create a mask with the circle area
+    mask = np.zeros(image.shape[:2], np.uint8)
+    cv2.circle(mask, (x, y), r, 255, -1, 8, 0)
+
+    # Set the pixels outside the circle to transparent on a copy of the original image, then crop the image to the circle
+    img2 = image.copy()
+    img2[mask == 0] = (0, 0, 0, 0)
+    crop = img2[y-r:y+r, x-r:x+r]
+    texture = Texture(crop, edge=edge)
+
+    # Apply a Gradient from original color to black on the edges of the circle
+    gradient = lambda distance, min, max: (distance - min) / (max - min) if distance > min else 0
+    for i in range(2*r):
+        for j in range(2*r):
+            d = np.sqrt((i - r)**2 + (j - r)**2)
+            if d > r:
+                continue
+            g = gradient(d, 0.8*r, r)
+            crop[i, j] = crop[i, j] * (1 - g)
+    # Apply a linear gradient from original color to black on the edges of the edge texture
+    w, h = edge.shape[:2]
+    for i in range(w):
+        for j in range(h):
+            d = abs(i - w / 2)
+            g = gradient(d, 0.8*(w / 2), w / 2)
+            edge[i, j] = edge[i, j] * (1 - g)
+    
+    dmap = Texture(crop, edge=edge)
+
+    filepath_no_ext = os.path.splitext(filepath)[0]
+
+    texture.export(f"{filepath_no_ext}.texture.png")
+    dmap.export(f"{filepath_no_ext}.dmap.png")
 
 
 def main(input_folder, output_folder, edges_path):
@@ -17,9 +56,10 @@ def main(input_folder, output_folder, edges_path):
     # Loop through all the images in the input folder
     for filename in os.listdir(input_folder):
         # If the filename follows the format {countryCode}_{value}_{particularity (optional)}.{extension} value being a keyof edges.json
+        # Example: "be_2euro_2008.jpg" should load the "2euro" edge texture
         edge = None
-        m = re.search(r"(\w+)_(\w+)(?:_(\w+))?\.\w+", filename)
-        value = m.group(2)
+        metadata = filename.split(".")[0].split("_")
+        value = metadata[1] if len(metadata) >= 2 else None
         if value and value in edges.keys():
             # Load the corresponding edge texture
             edge = cv2.imread(f"res/edges/{edges[value]}")
@@ -76,49 +116,15 @@ def main(input_folder, output_folder, edges_path):
                 x, y, r = c.astype(int)
                 cv2.circle(gray2, (x, y), r, (255, 255, 255), 2, cv2.LINE_AA)
 
-
         # Create the output folder if it doesn't exist
         pathlib.Path(output_folder).mkdir(parents=True, exist_ok=True)
 
+        # Get the filename without the extension
+        filename_no_ext = os.path.splitext(filename)[0]
+
         # Iterate through the circles
         for c, i in zip(coins, range(len(coins))):
-
-            # Get the center and radius of the circle
-            x, y, r = c.astype(int)
-
-            # Create a mask with the circle area
-            mask = np.zeros(img.shape[:2], np.uint8)
-            cv2.circle(mask, (x, y), r, 255, -1, 8, 0)
-
-            # Set the pixels outside the circle to transparent on a copy of the original image
-            img2 = img.copy()
-            img2[mask == 0] = (0, 0, 0, 0)
-
-            # Crop the image to the circle
-            crop = img2[y-r:y+r, x-r:x+r]
-
-            # Get the filename without the extension
-            name = os.path.splitext(filename)[0]
-
-            # Create a new image with the correct size for the texture
-            texture = np.zeros((r*4, r*4, 4), np.uint8)
-
-            # Copy the cropped image to the lower left corner of the texture
-            texture[r*2:, :r*2] = crop
-
-            # Calculate the average color of the cropped image
-            avg_color = np.mean(crop, axis=(0, 1))
-
-            # Fill a circle with the average color in the lower right corner of the texture
-            cv2.circle(texture, (r*3, r*3), r, avg_color, -1, 8, 0)
-
-            # If the edge texture was loaded, resize it and copy it to the upper half of the texture
-            if edge is not None:
-                texture[:r*2, :r*4] = cv2.resize(edge, (r*4, r*2))
-
-            # Save the texture
-            cv2.imwrite(os.path.join(output_folder,
-                        f"{name}-{i}.texture.png"), texture)
+            export(img, c, os.path.join(output_folder, f"{filename_no_ext}-{i}.png"), edge)
 
 
 if __name__ == "__main__":
