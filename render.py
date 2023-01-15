@@ -4,15 +4,24 @@ import bpy
 import os
 import random
 import subprocess
+import pathlib
+import logging
 
+# Get current working directory
+dir = bpy.path.abspath("//").replace("\\", "/")
 # Constants
-INPUT_DIR = "C:/Users/bsodium/Code/GitHub/blender-coin-generation/out/cropped"
-OUTPUT_DIR = "C:/Users/bsodium/Code/GitHub/blender-coin-generation/out/rendered"
+INPUT_DIR = f"{dir}out/cropped"
+OUTPUT_DIR = f"{dir}out/rendered"
 VARIATIONS = 3
 
 # Run the "isolate.py" script via subprocess if the input directory doesn't exist or is empty
 if not os.path.exists(INPUT_DIR) or len(os.listdir(INPUT_DIR)) == 0:
-    subprocess.run(["python", "isolate.py", INPUT_DIR, OUTPUT_DIR])
+    logging.info("No textures found, running isolate.py")
+    subprocess.run(["python", f"{dir}isolate.py"])
+
+# If the output directory doesn't exist, create it
+if not os.path.exists(OUTPUT_DIR):
+    pathlib.Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
 # Get the cylinder object
 cylinder = bpy.data.objects["Coin"]
@@ -43,13 +52,19 @@ for texture_file in os.listdir(INPUT_DIR):
         # Set the output file name
         bpy.context.scene.render.filepath = os.path.join(OUTPUT_DIR, name)
 
-        # Generate 10 random positions for the camera and light
+        # Generate random positions for the camera and light and randomize the light's color and intensity
         for i in range(VARIATIONS):
-            # Set the camera's position around the coin, at a distance of 4 units approximately
-            bpy.data.objects["Camera"].location = (random.uniform(-0.5, 0.5), random.uniform(-4, -5), random.uniform(-0.5, 0.5))
+            # Set the camera's position around the coin
+            bpy.data.objects["Camera"].location = (random.uniform(-2, 2), random.uniform(-2.5, -3), random.uniform(-2, 2))
 
             # Set the light's position around the coin
             bpy.data.objects["Light"].location = (random.uniform(-1.5, 1.5), random.uniform(-2, -3), random.uniform(-1.5, 1.5))
+
+            # Set the light's color
+            bpy.data.objects["Light"].data.color = (random.uniform(0.5, 1), random.uniform(0.5, 1), random.uniform(0.5, 1))
+
+            # Set the light's intensity
+            bpy.data.objects["Light"].data.energy = random.uniform(0.5, 1)
 
             # Render the image
             # bpy.ops.render.render(write_still=True)
