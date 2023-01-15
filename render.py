@@ -26,22 +26,27 @@ if not os.path.exists(OUTPUT_DIR):
 # Get the cylinder object
 cylinder = bpy.data.objects["Coin"]
 
-# Get the materials of the cylinder (named "Face" and "Side")
-face_mat = bpy.data.materials["Coin_face"]
-side_mat = bpy.data.materials["Coin_side"]
+# Get all materials
+coin_face_mat = bpy.data.materials["Coin_face"]
+coin_side_mat = bpy.data.materials["Coin_side"]
+plane_concrete_mat = bpy.data.materials["Concrete"] 
 
 # Get the texture nodes of the materials
-for node in face_mat.node_tree.nodes:
+for node in coin_face_mat.node_tree.nodes:
     if node.name == "face_img_texture":
         face_tex_node = node
     elif node.name == "face_bump_texture":
         face_bump_node = node
 
-for node in side_mat.node_tree.nodes:
+for node in coin_side_mat.node_tree.nodes:
     if node.name == "side_img_texture":
         side_tex_node = node
     elif node.name == "side_bump_texture":
         side_bump_node = node
+
+for node in plane_concrete_mat.node_tree.nodes:
+    if node.name == "texture_mapping":
+        mapping_node = node
 
 # List and group files in the input directory
 files = os.listdir(INPUT_DIR)
@@ -80,6 +85,9 @@ for texture, dmap in zip(textures, dmaps):
         # Set the light's intensity
         bpy.data.objects["Light"].data.energy = random.uniform(10, 20)
 
+        # Randomize the plane's texture position (edit the mapping node's location)
+        mapping_node.inputs[1].default_value = (random.uniform(-5, 5), random.uniform(-5, 5), 0)
+
         # Render the image
-        # bpy.ops.render.render(write_still=True)
+        bpy.ops.render.render(write_still=True)
         
