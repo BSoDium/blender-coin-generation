@@ -31,23 +31,27 @@ def compute_loss_ellipse(img, ellipse):
     # remove this mean to each pixel color (outside the circle)
     img2 = img.copy()
 
-    # coount number of white pixels of img2 inside the circle (mask == 0)
-    nb_in_white = np.count_nonzero(img2[mask == 0] == 255)
-
-    # count number of black pixels outside the mask (mask == 255)
-    nb_out_black = np.count_nonzero(img2[mask == 255] == 0)
-
     nb_total_pixels = height * width
 
-    alpha = 0.5
-    beta = 1-alpha
+    # number of pixels inside the circle
+    nb_in = np.count_nonzero(mask == 0)
 
-    loss = abs(((
-        alpha * (nb_in_white / nb_total_pixels) -
-        beta * (nb_out_black / nb_total_pixels)
-    )) / 2)
+    # number of pixels outside the circle
+    nb_out = np.count_nonzero(mask == 255)
 
-    return (loss)
+    # coount number of white pixels of img2 inside the circle (mask == 0)
+    nb_in_white = np.count_nonzero(img2[mask == 0] == 255) / nb_total_pixels
+
+    # count number of black pixels inside the circle (mask == 0)
+    nb_in_black = np.count_nonzero(img2[mask == 0] == 0) / nb_total_pixels
+
+    # count number of white pixels outside the circle (mask == 255)
+    nb_out_white = np.count_nonzero(img2[mask == 255] == 255) / nb_total_pixels
+
+    # count number of black pixels outside the circle (mask == 255)
+    nb_out_black = np.count_nonzero(img2[mask == 255] == 0) / nb_total_pixels
+
+    return (nb_in_white, nb_in_black, nb_out_white, nb_out_black)
 
 
 def print_loss(loss):
