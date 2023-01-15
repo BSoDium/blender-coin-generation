@@ -23,7 +23,7 @@ def main():
 
     number_of_images = len(images)
 
-    nb_of_tests = 10
+    nb_of_tests = 1
 
     images_name = [None] * nb_of_tests
     circles = np.zeros((nb_of_tests, 3), dtype=int)
@@ -31,8 +31,8 @@ def main():
     # for 10 random images in the folder
     for i in range(nb_of_tests):
         # get random image
-        image_name = images[np.random.randint(0, number_of_images)]
-        # image_name = IMAGE_NAME
+        # image_name = images[np.random.randint(0, number_of_images)]
+        image_name = IMAGE_NAME
         full_path = os.path.join(PATH, image_name)
 
         # read image

@@ -26,13 +26,11 @@ def find_ellipse(img, init_circle):
 
     index = 0
 
-    i_old_losses = []
-    o_old_losses = []
+    old_losses = []
 
     while index != 1:
 
-        i_losses = np.zeros(number_of_changes)
-        o_losses = np.zeros(number_of_changes)
+        losses = np.zeros(number_of_changes)
         i = 0
 
         for major_axis_chg in major_axis_changes:
@@ -45,18 +43,17 @@ def find_ellipse(img, init_circle):
                     current_ellipse = (center_x, center_y,
                                        _major_axis, _minor_axis, _angle)
 
-                    (i_losses[i], o_losses[i]) = compute_loss_ellipse(
-                        img, current_ellipse, i_old_losses, o_old_losses)
+                    losses[i] = compute_loss_ellipse(
+                        img, current_ellipse, old_losses)
 
                     # show_ellipse(img, current_ellipse)
 
                     i += 1
 
         # find the index which maximizes the inside loss and minimizes the outside loss
-        index = np.argmax(0.7 * i_losses - 0.3 * o_losses)
+        index = np.argmin(losses)
 
-        i_old_losses.append(i_losses[index])
-        o_old_losses.append(o_losses[index])
+        old_losses.append(losses[index])
 
         # get the changes
         idx = index - 1
