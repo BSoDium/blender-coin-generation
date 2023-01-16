@@ -1,73 +1,63 @@
 import os
+from os import listdir
+from os.path import isfile, join
 
 import cv2
 import numpy as np
-from find_circle import find_circle
-from find_ellipse import find_ellipse
-from utils import first_filters
+from utils import (convert_gif_to_jpg, crop_image, get_ellipse_coords,
+                   get_extension, is_image, remove_extension, show_image)
 
-# IMAGE_NAME = 'ad_2euro_com_2016.jpg'
-IMAGE_NAME = 'va_20cents_2013.jpg'
-PATH = "./raw/"
-DEBUG = True
+INPUT_PATH = "./raw/"
+OUTPUT_PATH = "./out/cropped/"
+NB_OF_TESTS = -1  # -1 for all images, n > 0 for n random images
 
 
 def main():
 
-    # read image
-    full_path = os.path.join(PATH, IMAGE_NAME)
-
     # get all images (.png, .jpg, .jpeg, .bmp, .gif)
-    images = [f for f in os.listdir(PATH) if f.endswith(
-        ('.png', '.jpg', '.jpeg', '.bmp', '.gif'))]
+    images = [f for f in listdir(INPUT_PATH) if is_image(f)]
 
-    number_of_images = len(images)
+    nb_of_images_in_path = len(images)
+    nb_of_images = NB_OF_TESTS > 0 and NB_OF_TESTS or nb_of_images_in_path
 
-    nb_of_tests = number_of_images
+    for i in range(nb_of_images):
 
-    images_name = [None] * nb_of_tests
-    circles = np.zeros((nb_of_tests, 3), dtype=int)
+        # get image name
+        if NB_OF_TESTS > 0:
+            # if we want to test, then we choose randomly
+            image_name = images[np.random.randint(0, nb_of_images_in_path)]
+        else:
+            # else, read all images in the folder (in order)
+            image_name = images[i]
 
-    # for 10 random images in the folder
-    for i in range(nb_of_tests):
-        # get random image
-        image_name = images[np.random.randint(0, number_of_images)]
-        # image_name = IMAGE_NAME
-        full_path = os.path.join(PATH, image_name)
+        full_path = join(INPUT_PATH, image_name)
+
+        # if it is an .gif, we convert it to .png
+        if get_extension(image_name) == "gif":
+            full_path = convert_gif_to_jpg(full_path)
 
         # read image
-
         img = cv2.imread(full_path)
 
-        # apply first filters to get better results
-        img_filtered = first_filters(img)
+        # get coin position and size from image
+        coin = get_ellipse_coords(img)
 
-        # find circle radius and center
-        # circle = find_circle(img_filtered)
+        # crop image
+        croped = crop_image(img, coin, -1)
 
-        # circles[i] = [int(circle[0][0]), int(circle[0][1]), int(circle[1])]
-        # images_name[i] = image_name
+        # show image
+        # show_image(img, "output")
 
-        # # find ellipse parameters
-        # ellipse = find_ellipse(img_filtered, circle)
+        # saved it as png
+        image_name_without_extension = remove_extension(image_name)
+        # check if the output folder exists
+        if not os.path.exists(OUTPUT_PATH):
+            os.makedirs(OUTPUT_PATH)
+        path = OUTPUT_PATH + image_name_without_extension + ".png"
+        cv2.imwrite(path, croped)
 
-        # show results
-        # center = (ellipse[0], ellipse[1])
-        # radius = (ellipse[2], ellipse[3])
-        # angle = ellipse[4]
-
-        # cv2.ellipse(img, center, radius, angle, 0, 360, (0, 255, 0), 2)
-        # cv2.imshow('img', img)
-        # cv2.waitKey(0)
-    # plot each image with its circle in a same window
-    # for i in range(nb_of_tests):
-    #     image_name = str(images_name[i])
-    #     circle = circles[i]
-    #     full_path = os.path.join(PATH, image_name)
-    #     img = cv2.imread(full_path)
-    #     cv2.circle(img, (circle[0], circle[1]), circle[2], (0, 255, 0), 2)
-    #     cv2.imshow('img', img)
-    #     cv2.waitKey(0)
+        print("Image {}/{} saved ({})".format(
+              str(i + 1), str(nb_of_images), image_name))
 
 
 if __name__ == "__main__":
