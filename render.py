@@ -12,7 +12,7 @@ dir = bpy.path.abspath("//").replace("\\", "/")
 # Constants
 INPUT_DIR = f"{dir}out/cropped"
 OUTPUT_DIR = f"{dir}out/rendered"
-VARIATIONS = 3
+VARIATIONS = 2
 
 # Run the "isolate.py" script via subprocess if the input directory doesn't exist or is empty
 if not os.path.exists(INPUT_DIR) or len(os.listdir(INPUT_DIR)) == 0:
@@ -29,14 +29,20 @@ cylinder = bpy.data.objects["Coin"]
 # Get all materials
 coin_face_mat = bpy.data.materials["Coin_face"]
 coin_side_mat = bpy.data.materials["Coin_side"]
-plane_concrete_mat = bpy.data.materials["Concrete"] 
+plane_concrete_mat = bpy.data.materials["Concrete"]
+world_mat = bpy.data.worlds["World"]
 
 # Get the texture nodes of the materials
 for node in coin_face_mat.node_tree.nodes:
-    if node.name == "face_img_texture":
-        face_tex_node = node
-    elif node.name == "face_bump_texture":
-        face_bump_node = node
+    match node.name:
+        case "face_img_texture":
+            face_tex_node = node
+        case "face_bump_texture":
+            face_bump_node = node
+        case "rustiness":
+            rustiness_node = node
+        case "roughness":
+            roughness_node = node
 
 for node in coin_side_mat.node_tree.nodes:
     if node.name == "side_img_texture":
@@ -47,6 +53,15 @@ for node in coin_side_mat.node_tree.nodes:
 for node in plane_concrete_mat.node_tree.nodes:
     if node.name == "texture_mapping":
         mapping_node = node
+
+for node in world_mat.node_tree.nodes:
+    match node.name:
+        case "r_weight":
+            r_weight_node = node
+        case "g_weight":
+            g_weight_node = node
+        case "b_weight":
+            b_weight_node = node
 
 # List and group files in the input directory
 files = os.listdir(INPUT_DIR)
@@ -74,20 +89,51 @@ for texture, dmap in zip(textures, dmaps):
     # Generate random positions for the camera and light and randomize the light's color and intensity
     for i in range(VARIATIONS):
         # Set the camera's position around the coin
-        bpy.data.objects["Camera"].location = (random.uniform(-2, 2), random.uniform(-2.5, -3), random.uniform(-2, 2))
-
-        # Set the light's position around the coin
-        bpy.data.objects["Light"].location = (random.uniform(-1.5, 1.5), random.uniform(-2, -3), random.uniform(-1.5, 1.5))
+        bpy.data.objects["Camera"].location = (
+            random.uniform(-2, 2), random.uniform(-2.5, -3), random.uniform(-2, 2))
 
         # Set the light's color
-        bpy.data.objects["Light"].data.color = (random.uniform(0.5, 1), random.uniform(0.5, 1), random.uniform(0.5, 1))
-
-        # Set the light's intensity
-        bpy.data.objects["Light"].data.energy = random.uniform(10, 20)
+        (
+            r_weight_node.outputs[0].default_value,
+            g_weight_node.outputs[0].default_value,
+            b_weight_node.outputs[0].default_value
+        ) = (
+            random.uniform(0.6, 1),
+            random.uniform(0.6, 1),
+            random.uniform(0.6, 1)
+        )
 
         # Randomize the plane's texture position (edit the mapping node's location)
-        mapping_node.inputs[1].default_value = (random.uniform(-5, 5), random.uniform(-5, 5), 0)
+        mapping_node.inputs[1].default_value = (
+            random.uniform(-5, 5), random.uniform(-5, 5), 0)
+
+        # Randomize the coin's age (0 = new, 1 = old) using a normal distribution
+        age = min(abs(random.normalvariate(0, 0.2)), 1)
+
+        # Randomize the rustiness of the coin using the age
+        rustiness_node.outputs[0].default_value = min(0.6 + age * 0.7, 0.9)
+
+        # Randomize the roughness of the coin using the age
+        roughness_node.outputs[0].default_value = min(0.4 + age * 0.5, 0.8)
 
         # Render the image
+        bpy.context.scene.render.filepath = os.path.join(
+            OUTPUT_DIR, f"{name}_{i}")
         bpy.ops.render.render(write_still=True)
-        
+
+        # Set render engine to Workbench
+        bpy.context.scene.render.engine = "BLENDER_WORKBENCH"
+
+        # Hide background plane
+        bpy.data.objects["Plane"].hide_render = True
+
+        # Render the image
+        bpy.context.scene.render.filepath = os.path.join(
+            OUTPUT_DIR, f"{name}_{i}_mask")
+        bpy.ops.render.render(write_still=True)
+
+        # Set render engine to Cycles
+        bpy.context.scene.render.engine = "CYCLES"
+
+        # Show background plane
+        bpy.data.objects["Plane"].hide_render = False
