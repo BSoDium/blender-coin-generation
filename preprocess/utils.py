@@ -157,7 +157,7 @@ def get_edge(image_name, edges):
     return edge
 
 
-def export(image, filepath, edge):
+def export(image, file_name, output_path, edge, ):
     # Get the center and radius of the circle
     x = int(image.shape[1] / 2)
     y = int(image.shape[0] / 2)
@@ -195,7 +195,14 @@ def export(image, filepath, edge):
 
     dmap = Texture(crop, edge=edge)
 
-    filepath_no_ext = remove_extension(filepath)
+    # get file name from full path
+    filename = file_name.split("/")[-1]
 
-    texture.export(f"{filepath_no_ext}.texture.png")
-    dmap.export(f"{filepath_no_ext}.dmap.png")
+    # remove extension
+    filepath_no_ext = remove_extension(filename)
+
+    # full path
+    full_path = f"{output_path}/{filepath_no_ext}"
+
+    texture.export(f"{full_path}.texture.png")
+    dmap.export(f"{full_path}.dmap.png")

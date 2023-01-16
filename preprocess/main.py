@@ -59,7 +59,7 @@ def main():
         edge = get_edge(image_name, edges)
 
         # saved it as png with bump texture
-        export(croped, full_path, edge)
+        export(croped, image_name, OUTPUT_PATH, edge)
 
         print("Image {}/{} saved ({})".format(
               str(i + 1), str(nb_of_images), image_name))
