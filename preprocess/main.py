@@ -4,11 +4,12 @@ from os.path import isfile, join
 
 import cv2
 import numpy as np
-from utils import (convert_gif_to_jpg, crop_image, get_ellipse_coords,
-                   get_extension, is_image, remove_extension, show_image)
+from utils import (convert_gif_to_jpg, crop_image, export, get_edge, get_edges,
+                   get_ellipse_coords, get_extension, is_image, show_image)
 
 INPUT_PATH = "./raw/"
 OUTPUT_PATH = "./out/cropped/"
+EDGES_PATH = "./res/edges/edges.json"
 NB_OF_TESTS = -1  # -1 for all images, n > 0 for n random images
 
 
@@ -19,6 +20,8 @@ def main():
 
     nb_of_images_in_path = len(images)
     nb_of_images = NB_OF_TESTS > 0 and NB_OF_TESTS or nb_of_images_in_path
+
+    edges = get_edges(EDGES_PATH)
 
     for i in range(nb_of_images):
 
@@ -48,13 +51,15 @@ def main():
         # show image
         # show_image(img, "output")
 
-        # saved it as png
-        image_name_without_extension = remove_extension(image_name)
         # check if the output folder exists
         if not os.path.exists(OUTPUT_PATH):
             os.makedirs(OUTPUT_PATH)
-        path = OUTPUT_PATH + image_name_without_extension + ".png"
-        cv2.imwrite(path, croped)
+
+        # get the corresponding edge texture
+        edge = get_edge(image_name, edges)
+
+        # saved it as png with bump texture
+        export(croped, full_path, edge)
 
         print("Image {}/{} saved ({})".format(
               str(i + 1), str(nb_of_images), image_name))

@@ -1,9 +1,12 @@
+import json
+import os
 import sys
 
 import cv2
 import imageio
 import numpy as np
 from constant import IMAGE_EXTENSION
+from texture import Texture
 
 
 def get_ellipse_coords(img):
@@ -131,3 +134,68 @@ def convert_gif_to_jpg(file_name):
     imageio.imwrite(output_path, gif[0])
 
     return output_path
+
+
+def get_edges(edges_path):
+    """Return a dict of the edges"""
+    with open(edges_path, "r") as f:
+        edges = json.load(f)
+
+    return edges
+
+
+def get_edge(image_name, edges):
+    """Return the edge of the image"""
+    edge = None
+    metadata = image_name.split(".")[0].split("_")
+    value = metadata[1] if len(metadata) >= 2 else None
+    if value and value in edges.keys():
+        # Load the corresponding edge texture
+        edge = cv2.imread(f"res/edges/{edges[value]}")
+        # Add an alpha channel to the image
+        edge = cv2.cvtColor(edge, cv2.COLOR_BGR2BGRA)
+    return edge
+
+
+def export(image, filepath, edge):
+    # Get the center and radius of the circle
+    x = int(image.shape[1] / 2)
+    y = int(image.shape[0] / 2)
+    r = int(min(image.shape[0], image.shape[1]) / 2)
+
+    # Create a mask with the circle area
+    mask = np.zeros(image.shape[:2], np.uint8)
+    cv2.circle(mask, (x, y), r, 255, -1, 8, 0)
+
+    # Set the pixels outside the circle to transparent on a copy of the original image, then crop the image to the circle
+    img2 = image.copy()
+    img2[mask == 0] = (0, 0, 0, 0)
+    crop = img2[y-r:y+r, x-r:x+r]
+    texture = Texture(crop, edge=edge)
+
+    # Apply a circular gradient from original color to black on the edges of the circle
+    def gradient(distance, min, max): return (distance - min) / \
+        (max - min) if distance > min else 0
+
+    for i in range(2*r):
+        for j in range(2*r):
+            d = np.sqrt((i - r)**2 + (j - r)**2)
+            if d > r:
+                continue
+            g = gradient(d, 0.8*r, r)
+            crop[i, j] = crop[i, j] * (1 - g)
+
+    # Apply a linear gradient from original color to black on the edges of the edge texture
+    w, h = edge.shape[:2]
+    for i in range(w):
+        for j in range(h):
+            d = abs(i - w / 2)
+            g = gradient(d, 0.8*(w / 2), w / 2)
+            edge[i, j] = edge[i, j] * (1 - g)
+
+    dmap = Texture(crop, edge=edge)
+
+    filepath_no_ext = remove_extension(filepath)
+
+    texture.export(f"{filepath_no_ext}.texture.png")
+    dmap.export(f"{filepath_no_ext}.dmap.png")
