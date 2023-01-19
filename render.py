@@ -81,7 +81,7 @@ for texture, dmap in zip(textures, dmaps):
     side_bump_node.image = dmap_image
 
     # Get the name of the texture
-    name = os.path.splitext(texture)[0].strip(".texture")
+    name = os.path.splitext(os.path.splitext(texture)[0])[0]
 
     # Set the output file name
     bpy.context.scene.render.filepath = os.path.join(OUTPUT_DIR, name)
@@ -116,6 +116,7 @@ for texture, dmap in zip(textures, dmaps):
         # Randomize the roughness of the coin using the age
         roughness_node.outputs[0].default_value = min(0.4 + age * 0.5, 0.8)
 
+        continue
         # Render the image
         bpy.context.scene.render.filepath = os.path.join(
             OUTPUT_DIR, f"{name}_{i}")
