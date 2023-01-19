@@ -4,6 +4,10 @@ import shutil
 import jsonlines
 import os
 import re
+import argparse
+
+DEFAULT_INPUT_DIR = "out/rendered"
+DEFAULT_OUTPUT_DIR = "out/dataset"
 
 def split_dataset(src, out, train_ratio, valid_ratio, test_ratio, regex=".+\.png$") -> None:
     # Make sure bothe the source and output directories exist
@@ -73,9 +77,14 @@ def split_dataset(src, out, train_ratio, valid_ratio, test_ratio, regex=".+\.png
         bar()
     
 if __name__ == "__main__":
-  # TODO: Read these from CLI arguments
-  input_dir = "out/rendered"
-  output_dir = "out/dataset"
+  # Parse the command line arguments
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--input_dir", type=str, default=DEFAULT_INPUT_DIR, help="The directory containing the images to split")
+  parser.add_argument("--output_dir", type=str, default=DEFAULT_OUTPUT_DIR, help="The directory to output the dataset to")
+  args = parser.parse_args()
+
+  input_dir = args.input_dir
+  output_dir = args.output_dir
 
   # If the output directory already exists and is not empty, skip this step
   if not os.path.exists(output_dir) or len(os.listdir(output_dir)) == 0:
