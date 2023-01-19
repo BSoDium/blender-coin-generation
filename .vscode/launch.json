@@ -19,6 +19,14 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Python: illustration",
+            "type": "python",
+            "request": "launch",
+            "program": "illustration.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }
