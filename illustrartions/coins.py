@@ -1,7 +1,9 @@
-import cv2
-import os
-import numpy as np
 import glob
+import os
+
+import cv2
+import numpy as np
+from helpers import add_transparency_mask
 
 # this script will create a big image with some coins in it
 # it is for illustration purposes only
@@ -35,8 +37,12 @@ values = [
     "1cent"
 ]
 
-PATH = "raw"
+ROOT = os.path.dirname(os.path.abspath(__file__))
+ASSETS_PATH = "../raw"
 OUTPUT_PATH = "out"
+
+assets_path = os.path.join(ROOT, ASSETS_PATH)
+output_path = os.path.join(ROOT, OUTPUT_PATH)
 
 
 x = 100
@@ -53,7 +59,7 @@ for country in countries:
     for value in values:
         # image path is PATH/<country>_<value>*.jpg where * is can be any character, or empty
         # so we use glob to get all the files that match the pattern
-        image_path = os.path.join(PATH, f"{country}_{value}*.jpg")
+        image_path = os.path.join(assets_path, f"{country}_{value}*.jpg")
         # get all the files that match the pattern
         files = glob.glob(image_path)
         # if there are no files, skip
@@ -71,5 +77,7 @@ for country in countries:
         j = values.index(value)
         main_image[i * x:(i + 1) * x, j * x:(j + 1) * x] = image
 
+# add a linear transparency mask
+main_image = add_transparency_mask(main_image)
 # save image
-cv2.imwrite(OUTPUT_PATH + "/main_image.jpg", main_image)
+cv2.imwrite(output_path + "/coins.png", main_image)
