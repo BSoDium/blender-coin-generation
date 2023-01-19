@@ -16,6 +16,11 @@ countries = [
     "es",
     "de",
     "gr",
+    "hr",
+    "ie",
+    "lu",
+    "mt"
+
 ]
 
 # list of coin values
@@ -41,8 +46,7 @@ nb_values = len(values)
 width = x * nb_values
 height = x * nb_countries
 
-# create empty image of dimension (x, x)
-main_image = np.zeros((width, height, 3), np.uint8) * 255
+main_image = np.zeros((height, width, 3), np.uint8) * 255
 
 # for each country
 for country in countries:
