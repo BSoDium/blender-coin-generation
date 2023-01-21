@@ -5,7 +5,8 @@ import sys
 import cv2
 import imageio
 import numpy as np
-from constant import IMAGE_EXTENSION
+
+from src.libs.constant import IMAGE_EXTENSION
 from texture import Texture
 
 
@@ -151,7 +152,7 @@ def get_edge(image_name, edges):
     value = metadata[1] if len(metadata) >= 2 else None
     if value and value in edges.keys():
         # Load the corresponding edge texture
-        edge = cv2.imread(f"res/edges/{edges[value]}")
+        edge = cv2.imread(f"assets/edges/{edges[value]}")
         # Add an alpha channel to the image
         edge = cv2.cvtColor(edge, cv2.COLOR_BGR2BGRA)
     return edge

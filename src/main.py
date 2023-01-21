@@ -4,12 +4,13 @@ from os.path import isfile, join
 
 import cv2
 import numpy as np
+
 from utils import (convert_gif_to_jpg, crop_image, export, get_edge, get_edges,
                    get_ellipse_coords, get_extension, is_image, show_image)
 
 INPUT_PATH = "./raw/"
 OUTPUT_PATH = "./out/cropped/"
-EDGES_PATH = "./res/edges/edges.json"
+EDGES_PATH = "./assets/edges/edges.json"
 NB_OF_TESTS = -1  # -1 for all images, n > 0 for n random images
 
 
