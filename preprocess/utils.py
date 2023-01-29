@@ -193,6 +193,7 @@ def export(image, file_name, output_path, edge, ):
             g = gradient(d, 0.8*(w / 2), w / 2)
             edge[i, j] = edge[i, j] * (1 - g)
 
+    # Create a displacement map from the texture
     dmap = Texture(crop, edge=edge)
 
     # get file name from full path

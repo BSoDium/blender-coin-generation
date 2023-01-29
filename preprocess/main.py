@@ -1,6 +1,7 @@
 import os
 from os import listdir
-from os.path import isfile, join
+from os.path import join
+from alive_progress import alive_bar
 
 import cv2
 import numpy as np
@@ -23,46 +24,47 @@ def main():
 
     edges = get_edges(EDGES_PATH)
 
-    for i in range(nb_of_images):
+    with alive_bar(nb_of_images) as bar:
+        for i in range(nb_of_images):
 
-        # get image name
-        if NB_OF_TESTS > 0:
-            # if we want to test, then we choose randomly
-            image_name = images[np.random.randint(0, nb_of_images_in_path)]
-        else:
-            # else, read all images in the folder (in order)
-            image_name = images[i]
+            # get image name
+            if NB_OF_TESTS > 0:
+                # if we want to test, then we choose randomly
+                image_name = images[np.random.randint(0, nb_of_images_in_path)]
+            else:
+                # else, read all images in the folder (in order)
+                image_name = images[i]
 
-        full_path = join(INPUT_PATH, image_name)
+            full_path = join(INPUT_PATH, image_name)
 
-        # if it is an .gif, we convert it to .png
-        if get_extension(image_name) == "gif":
-            full_path = convert_gif_to_jpg(full_path)
+            # if it is an .gif, we convert it to .png
+            if get_extension(image_name) == "gif":
+                full_path = convert_gif_to_jpg(full_path)
 
-        # read image
-        img = cv2.imread(full_path)
+            # read image
+            img = cv2.imread(full_path)
 
-        # get coin position and size from image
-        coin = get_ellipse_coords(img)
+            # get coin position and size from image
+            coin = get_ellipse_coords(img)
 
-        # crop image
-        croped = crop_image(img, coin, -1)
+            # crop image
+            croped = crop_image(img, coin, -1)
 
-        # show image
-        # show_image(img, "output")
+            # show image
+            # show_image(img, "output")
 
-        # check if the output folder exists
-        if not os.path.exists(OUTPUT_PATH):
-            os.makedirs(OUTPUT_PATH)
+            # check if the output folder exists
+            if not os.path.exists(OUTPUT_PATH):
+                os.makedirs(OUTPUT_PATH)
 
-        # get the corresponding edge texture
-        edge = get_edge(image_name, edges)
+            # get the corresponding edge texture
+            edge = get_edge(image_name, edges)
 
-        # saved it as png with bump texture
-        export(croped, image_name, OUTPUT_PATH, edge)
+            # saved it as png with bump texture
+            export(croped, image_name, OUTPUT_PATH, edge)
 
-        print("Image {}/{} saved ({})".format(
-              str(i + 1), str(nb_of_images), image_name))
+            bar.text = f"Image {image_name} saved"
+            bar()
 
 
 if __name__ == "__main__":

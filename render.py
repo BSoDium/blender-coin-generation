@@ -23,8 +23,8 @@ if not os.path.exists(INPUT_DIR) or len(os.listdir(INPUT_DIR)) == 0:
 if not os.path.exists(OUTPUT_DIR):
     pathlib.Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
-# Get the cylinder object
-cylinder = bpy.data.objects["Coin"]
+# Get the coin object
+coin = bpy.data.objects["Coin"]
 
 # Get all materials
 coin_face_mat = bpy.data.materials["Coin_face"]
@@ -92,6 +92,9 @@ for texture, dmap in zip(textures, dmaps):
         bpy.data.objects["Camera"].location = (
             random.uniform(-2, 2), random.uniform(-2.5, -3), random.uniform(-2, 2))
 
+        # Set the coin's rotation around the y-axis
+        coin.rotation_euler = (coin.rotation_euler[0], random.uniform(0, 6.28), coin.rotation_euler[2])
+
         # Set the light's color
         (
             r_weight_node.outputs[0].default_value,
@@ -117,6 +120,7 @@ for texture, dmap in zip(textures, dmaps):
         roughness_node.outputs[0].default_value = min(0.4 + age * 0.5, 0.8)
 
         continue
+
         # Render the image
         bpy.context.scene.render.filepath = os.path.join(
             OUTPUT_DIR, f"{name}_{i}")
