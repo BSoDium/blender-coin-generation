@@ -32,18 +32,18 @@ def split_dataset(src, out, train_ratio, valid_ratio, test_ratio, regex=".+\.png
       country = file_data[0]
       value = file_data[1]
       if len(file_data) == 4:
-        category = file_data[2]
+        edition = file_data[2]
         variant = file_data[3]
       else:
-        category = "regular"
+        edition = "standard"
         variant = file_data[2]
       
       metadata.append({
         "file_name": file,
-        "objects": {
+        "labels": {
           "value": value,
           "country": country,
-          "category": category,
+          "edition": edition,
           "variant": variant
         }
       })
@@ -53,15 +53,18 @@ def split_dataset(src, out, train_ratio, valid_ratio, test_ratio, regex=".+\.png
     os.makedirs(os.path.join(out, "valid"))
     os.makedirs(os.path.join(out, "test"))
 
+    # Determine number of variants for each country and value
+    variants = max([int(data["labels"]["variant"]) for data in metadata]) + 1
+
     # Split the dataset into train, valid, and test
     with alive_bar(len(metadata)) as bar:
       for i, data in enumerate(metadata):
         # Get the file name and the destination directory
         file = data["file_name"]
-        variant = data["objects"]["variant"]
-        if i < len(metadata) * train_ratio:
+        variant =int(data["labels"]["variant"])
+        if variant < train_ratio * variants:
           dest = "train"
-        elif i < len(metadata) * (train_ratio + valid_ratio):
+        elif variant < (train_ratio + valid_ratio) * variants:
           dest = "valid"
         else:
           dest = "test"
